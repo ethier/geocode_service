@@ -11,6 +11,7 @@ import cgi
 import re
 import os
 import json
+import urllib
 import urllib2
 import collections
 import textwrap
@@ -94,6 +95,7 @@ class GeocodingService(object):
         time_now = time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())
         header += 'Date: {now}\n'.format(now=time_now)
         header += 'Server: Geocode address service\n'
+        header += 'Content-Type: application/json\n'
         header += 'Connection: close\n\n'
 
         return header
@@ -220,13 +222,24 @@ class GeocodingService(object):
 
         address_values = address.values()
         address_values = ' '.join([str(attribute) for attribute in address_values])
+
+        # Here expects address attributes separated by +.
         address_values = re.sub(r' ', '+', address_values)
 
-        url += address_values
+        url += urllib.quote(address_values)
 
         response = self._geocode_request(url)
 
         print("Response: {response}".format(response=response))
+
+        lat_lngs = []
+
+        for response_result in response['results']['View']['Result']:
+            geometry_location = response_result['Location']['NavigationPosition']
+            lat_lngs.append(
+                {lat: geometry_location['Latitude'], lng: geometry_location['Longitude']})
+        print(lat_lngs)
+        return lat_lngs
 
         return response
 
@@ -237,11 +250,12 @@ class GeocodingService(object):
         url = self.google_app_url
         url += "?address="
 
+        # Google expects address attributes separated by ,.
         address_values = address.values()
         address_values = ','.join([str(attribute)
                                    for attribute in address_values])
 
-        url += address_values
+        url += urllib.quote(address_values)
 
         if self.google_api_key:
             url += "&key="
@@ -251,7 +265,14 @@ class GeocodingService(object):
 
         print("Response: {response}".format(response=response))
 
-        return response
+        lat_lngs = []
+
+        for response_result in response['results']:
+            geometry_location = response_result['geometry']['location']
+            lat_lngs.append(
+                {lat: geometry_location['lat'], lng: geometry_location['lng']})
+        print(lat_lngs)
+        return lat_lngs
 
     def _geocode_request(self, url):
         print("Geocode request URL: {url}".format(url=url))
