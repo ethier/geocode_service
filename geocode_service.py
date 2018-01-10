@@ -1,7 +1,6 @@
 # Web service initializer / headers / listen and client handler inspired by:
 # https://gist.github.com/joncardasis/cc67cfb160fa61a0457d6951eff2aeae
 
-from address_cleaner import AddressCleaner
 from geocoder import Geocoder
 
 import socket
@@ -43,7 +42,6 @@ class GeocodeService(object):
         try:
             print("Shutting down server")
             self.socket.shutdown(socket.SHUT_RDWR)
-
         except Exception as e:
             pass
 
@@ -96,16 +94,19 @@ class GeocodeService(object):
                 print("Request Body: {b}".format(b=data))
                 print("Data {data}".format(data=data_split))
 
-                address_cleaner = AddressCleaner(query_string_data=data_split[1])
-                address = address_cleaner.clean()
-
-                geocoder = Geocoder(address=address)
-                geocode_response = geocoder.request()
-
                 http_code = 200
+                geocode_response = []
 
-                if 'error' in geocode_response[0]:
-                    http_code = 403
+                try:
+                    geocoder = Geocoder(query_string_data=data_split[1])
+                    geocode_response = geocoder.request()
+
+                    if 'error' in geocode_response[0]:
+                        http_code = 403
+                except Exception as e:
+                    print("Geocoder request failed: {e}".format(e=e))
+                    geocode_response = [ { "error": "error_initializing_geocoders"} ]
+                    http_code = 500
 
                 response_header = self._generate_headers(http_code)
 
