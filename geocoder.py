@@ -1,3 +1,4 @@
+from address_cleaner import AddressCleaner
 from geocoders.google import Google
 from geocoders.here import Here
 
@@ -6,7 +7,10 @@ import urllib2
 import json
 
 class Geocoder(object):
-    def __init__(self, address):
+    def __init__(self, query_string_data):
+        address_cleaner = AddressCleaner(query_string_data=query_string_data)
+        address = address_cleaner.clean()
+
         self.address = address
 
         print("Address to geocode: {address}".format(address=self.address))
